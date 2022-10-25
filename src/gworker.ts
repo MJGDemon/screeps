@@ -45,7 +45,6 @@ export function gWorker() {
 
   spawn.spawnCreep(body, name, {
     memory: {
-      srcTarget: null,
       status: creepsConstant.STATUS_WAIT
     }
   });

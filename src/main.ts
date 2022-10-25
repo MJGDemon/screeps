@@ -9,7 +9,7 @@ declare global {
   }
 
   interface CreepMemory {
-    srcTarget: Id<Source> | null;
+    srcTarget?: Id<Source>;
     status: number;
     working?: (creep: Creep) => void;
   }

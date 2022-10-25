@@ -11,17 +11,14 @@ let creepsBuilder = {
         if (creep.store.getFreeCapacity() == 0) {
           creep.memory.status = creepsConstant.STATUS_REDUCE;
         } else {
-          creep.memory.working = harvester;
-          creep.memory.srcTarget = null;
           creep.memory.status = creepsConstant.STATUS_INC;
         }
         break;
       }
       case creepsConstant.STATUS_INC: {
         if (creep.store.getFreeCapacity() == 0) {
-          creep.memory.working = undefined;
-          creep.memory.srcTarget = null;
-          creep.memory.status = creepsConstant.STATUS_WAIT;
+          reset(creep)
+          this.run(creep)
           break;
         }
 
@@ -33,11 +30,11 @@ let creepsBuilder = {
       }
       case creepsConstant.STATUS_REDUCE: {
         if (creep.store.energy == 0) {
-          creep.memory.working = undefined;
-          creep.memory.srcTarget = null;
-          creep.memory.status = creepsConstant.STATUS_WAIT;
+          reset(creep)
+          this.run(creep)
           break;
         }
+
         if (creep.memory.working == undefined) {
           // 无脑升级
           creep.memory.working = upgrader;
@@ -49,13 +46,15 @@ let creepsBuilder = {
   }
 };
 
+function reset(creep: Creep) {
+  creep.memory.working = undefined;
+  creep.memory.srcTarget = undefined;
+  creep.memory.status = creepsConstant.STATUS_WAIT;
+}
+
 function harvester(creep: Creep) {
-  if (creep.memory.srcTarget != null) {
-    if (creep.harvest(Game.getObjectById(creep.memory.srcTarget) as Source) == ERR_NOT_IN_RANGE) {
-      creep.moveTo(Game.getObjectById(creep.memory.srcTarget) as Source, {
-        visualizePathStyle: { stroke: "#ffaa00" }
-      });
-    }
+  if (creep.memory.srcTarget != undefined && creep.memory.srcTarget != '') {
+    moveAndHarvest(creep, Game.getObjectById(creep.memory.srcTarget) as Source)
     return;
   }
 
@@ -73,15 +72,23 @@ function harvester(creep: Creep) {
     m.set(key, (m.get(key) as number) + 1);
   }
 
+  let min: Id<Source> = '' as Id<Source>
   m.forEach((value, key) => {
-    if (value < 3) {
-      move(creep, Game.getObjectById(key) as Source);
-      creep.memory.srcTarget = (Game.getObjectById(key) as Source).id;
+    if (min == '') {
+      min = key
+      return
+    }
+
+    if (value < (m.get(min) as number)) {
+      min = key
     }
   });
+
+  moveAndHarvest(creep, Game.getObjectById(min) as Source);
+  creep.memory.srcTarget = (Game.getObjectById(min) as Source).id;
 }
 
-function move(creep: Creep, src: Source) {
+function moveAndHarvest(creep: Creep, src: Source) {
   if (creep.harvest(src) == ERR_NOT_IN_RANGE) {
     creep.moveTo(src, { visualizePathStyle: { stroke: "#ffaa00" } });
   }
