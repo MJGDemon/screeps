@@ -31,6 +31,7 @@ function clear() {
   for (const name in Memory.creeps) {
     if (!(name in Game.creeps)) {
       delete Memory.creeps[name];
+      // 如果creeps做任务做到一半噶了，就把任务取消
       let index = Memory.taskList.workingTaskList.findIndex(item => item.creep === name)
       if(index !== -1) {
         Memory.taskList.workingTaskList.splice(index, 1)
