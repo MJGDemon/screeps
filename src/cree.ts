@@ -1,58 +1,98 @@
 import { creepsConstant } from "./constant";
+import { MemoryPendingTaskItem, taskEnumList } from './taskCenter'
 
-let creepsBuilder = {
-  run: function (creep: Creep) {
-    if (creep.memory.status === undefined) {
-      creep.memory.status = creepsConstant.STATUS_WAIT;
+export const run = (creep: Creep) => {
+
+  if (creep.memory.status === undefined) {
+    creep.memory.status = creepsConstant.STATUS_WAIT;
+  }
+
+  switch (creep.memory.status) {
+    case creepsConstant.STATUS_WAIT: {
+      if (creep.store.getFreeCapacity() == 0) {
+        creep.memory.status = creepsConstant.STATUS_REDUCE;
+      } else {
+        creep.memory.status = creepsConstant.STATUS_INC;
+      }
+      break;
     }
+    case creepsConstant.STATUS_INC: {
+      if (creep.store.getFreeCapacity() == 0) {
+        reset(creep)
+        run(creep)
+        break;
+      }
 
-    switch (creep.memory.status) {
-      case creepsConstant.STATUS_WAIT: {
-        if (creep.store.getFreeCapacity() == 0) {
-          creep.memory.status = creepsConstant.STATUS_REDUCE;
+      if (creep.memory.working == undefined) {
+        creep.memory.working = 0;
+      }
+      working(creep);
+      break;
+    }
+    case creepsConstant.STATUS_REDUCE: {
+      if (creep.store.energy == 0) {
+        reset(creep)
+        run(creep)
+        break;
+      }
+
+      if (creep.memory.working === undefined) {
+        // 无脑升级
+        // creep.memory.working = 2;
+        let pendingTask = Memory.taskList.pendingTaskList
+        if(pendingTask.length > 0) {
+          const task = pendingTask.shift() as MemoryPendingTaskItem
+          Memory.taskList.workingTaskList.push({
+            id: task.id,
+            type: task.type,
+            creep: creep.name
+          })
+          creep.memory.working = task.type
+          console.log(`任务已被 ${creep.id} 接受 任务类型为 ${task.type}`)
         } else {
-          creep.memory.status = creepsConstant.STATUS_INC;
+          creep.memory.working = taskEnumList.BUILD
+          console.log(123)
         }
-        break;
       }
-      case creepsConstant.STATUS_INC: {
-        if (creep.store.getFreeCapacity() == 0) {
-          reset(creep)
-          this.run(creep)
-          break;
-        }
-
-        if (creep.memory.working == undefined) {
-          creep.memory.working = harvester;
-        }
-        creep.memory.working(creep);
-        break;
-      }
-      case creepsConstant.STATUS_REDUCE: {
-        if (creep.store.energy == 0) {
-          reset(creep)
-          this.run(creep)
-          break;
-        }
-
-        if (creep.memory.working == undefined) {
-          // 无脑升级
-          creep.memory.working = upgrader;
-        }
-        creep.memory.working(creep);
-        break;
-      }
+      working(creep);
+      break;
     }
   }
-};
+}
 
-function reset(creep: Creep) {
+const reset = (creep: Creep) => {
+  let workingTaskIndex = Memory.taskList.workingTaskList.findIndex(item => item.creep === creep.name)
+  if(workingTaskIndex !== -1) {
+    Memory.taskList.workingTaskList.splice(workingTaskIndex, 1)
+    console.log(`任务已完成,任务类型 ${creep.memory.working}, 剩余能量 ${creep.store.energy}`)
+  }
   creep.memory.working = undefined;
   creep.memory.srcTarget = undefined;
   creep.memory.status = creepsConstant.STATUS_WAIT;
 }
 
-function harvester(creep: Creep) {
+const working = (creep: Creep) => {
+  switch (creep.memory.working) {
+    case 0:
+      harvester(creep)
+      creep.say("挖矿挖矿！")
+      break;
+    case 1:
+      upgrade(creep)
+      creep.say("升级升级！")
+      break
+    case 2:
+      build(creep)
+      creep.say("造家造家！")
+      break
+    case 3:
+      transfer(creep)
+      creep.say("存矿存矿！")
+      break
+  }
+}
+
+const harvester = (creep: Creep) => {
   if (creep.memory.srcTarget != undefined && creep.memory.srcTarget != '') {
     moveAndHarvest(creep, Game.getObjectById(creep.memory.srcTarget) as Source)
     return;
@@ -88,13 +128,13 @@ function harvester(creep: Creep) {
   creep.memory.srcTarget = (Game.getObjectById(min) as Source).id;
 }
 
-function moveAndHarvest(creep: Creep, src: Source) {
+const moveAndHarvest = (creep: Creep, src: Source) => {
   if (creep.harvest(src) == ERR_NOT_IN_RANGE) {
     creep.moveTo(src, { visualizePathStyle: { stroke: "#ffaa00" } });
   }
 }
 
-function transfer(creep: Creep) {
+const transfer = (creep: Creep) => {
   var targets = creep.room.find(FIND_STRUCTURES, {
     filter: (structure: any) => {
       return (
@@ -112,7 +152,7 @@ function transfer(creep: Creep) {
   }
 }
 
-function build(creep: Creep) {
+const build = (creep: Creep) => {
   const constructSite = creep.room.find(FIND_MY_CONSTRUCTION_SITES);
   if (constructSite.length > 0) {
     if (creep.build(constructSite[0]) === ERR_NOT_IN_RANGE) {
@@ -140,10 +180,8 @@ function build(creep: Creep) {
   }
 }
 
-function upgrader(creep: Creep) {
+const upgrade = (creep: Creep) => {
   if (creep.upgradeController(creep.room.controller as StructureController) == ERR_NOT_IN_RANGE) {
     creep.moveTo(creep.room.controller as StructureController, { visualizePathStyle: { stroke: "#ffffff" } });
   }
 }
-
-export default creepsBuilder;
