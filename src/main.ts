@@ -3,6 +3,7 @@ import { gWorker, workers } from "./gworker";
 import {run} from "./cree";
 import { MemoryPendingTaskList, MemoryWorkingTaskList, initTaskCenter, runTaskCenter, taskEnumList } from "taskCenter";
 import { ValueOf } from "utils";
+import { runTower } from "tower";
 
 declare global {
   interface Memory {
@@ -42,9 +43,10 @@ function clear() {
 
 export const loop = ErrorMapper.wrapLoop(() => {
   clear();
-  gWorker();
+  gWorker(Game.rooms['E52N9']);
   initTaskCenter(Game.rooms['E52N9'])
   runTaskCenter(Game.rooms['E52N9'])
+  runTower(Game.rooms['E52N9'])
   for (let worker of workers()) {
     run(worker);
   }

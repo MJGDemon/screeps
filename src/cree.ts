@@ -50,7 +50,7 @@ export const run = (creep: Creep) => {
           creep.memory.working = task.type
           console.log(`任务已被 ${creep.id} 接受 任务类型为 ${task.type}`)
         } else {
-          creep.memory.working = taskEnumList.BUILD
+          creep.memory.working = taskEnumList.UPGRADE
           console.log(123)
         }
       }
